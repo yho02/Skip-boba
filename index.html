@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Boba Savings" />
+  <meta name="theme-color" content="#7c5cbf" />
+  <title>Boba Savings</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #faf8ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem 4rem;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    #total-display { text-align: center; }
+    #total-label {
+      font-size: 12px;
+      color: #9b8ab0;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    #total-amount {
+      font-size: 56px;
+      font-weight: 600;
+      color: #2d1f4a;
+      line-height: 1;
+    }
+    #boba-count {
+      font-size: 13px;
+      color: #9b8ab0;
+      margin-top: 8px;
+    }
+
+    #jar-area {
+      position: relative;
+      width: 200px;
+      height: 260px;
+    }
+
+    #falling-boba {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 36px;
+      height: 36px;
+      top: -50px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #btn-save {
+      background: #7c5cbf;
+      color: white;
+      border: none;
+      border-radius: 999px;
+      padding: 16px 44px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #btn-save:active { transform: scale(0.96); background: #6a4aad; }
+
+    #btn-undo {
+      background: none;
+      border: 1px solid #d4c8eb;
+      border-radius: 999px;
+      padding: 10px 28px;
+      font-size: 14px;
+      color: #9b8ab0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #btn-undo:active { background: #f0eafa; }
+
+    #history-section {
+      width: 100%;
+    }
+
+    #history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 2px;
+    }
+    #history-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9b8ab0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    #btn-clear {
+      background: none;
+      border: none;
+      font-size: 13px;
+      color: #c4b0e8;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+    #btn-clear:active { color: #e24b4a; background: #fef0f0; }
+
+    #history-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+      border: 1px solid #ede8f5;
+      border-radius: 12px;
+      padding: 12px 16px;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .history-item-left { display: flex; align-items: center; gap: 12px; }
+    .boba-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #7c5cbf;
+      flex-shrink: 0;
+    }
+    .history-date { font-size: 14px; color: #2d1f4a; }
+    .history-time { font-size: 12px; color: #9b8ab0; margin-top: 2px; }
+    .history-amount { font-size: 14px; font-weight: 600; color: #7c5cbf; }
+
+    #history-empty {
+      font-size: 14px;
+      color: #c4b0e8;
+      text-align: center;
+      padding: 28px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="total-display">
+      <div id="total-label">Total saved</div>
+      <div id="total-amount">$0</div>
+      <div id="boba-count">0 bobas skipped</div>
+    </div>
+
+    <div id="jar-area">
+      <svg id="falling-boba" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="18" r="16" fill="#7c5cbf" opacity="0.9"/>
+        <circle cx="13" cy="14" r="3" fill="#b89de0" opacity="0.6"/>
+        <circle cx="22" cy="20" r="2.5" fill="#b89de0" opacity="0.5"/>
+        <rect x="14" y="3" width="8" height="5" rx="2" fill="#5a3f9a"/>
+        <rect x="16" y="1" width="4" height="4" rx="1" fill="#7c5cbf" stroke="#5a3f9a" stroke-width="0.5"/>
+      </svg>
+
+      <svg id="jar-svg" width="200" height="260" viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="jar-clip">
+            <path d="M38,55 Q35,56 33,65 L20,220 Q18,238 30,245 L170,245 Q182,238 180,220 L167,65 Q165,56 162,55 Z"/>
+          </clipPath>
+        </defs>
+        <rect x="52" y="38" width="96" height="20" rx="6" fill="none" stroke="#9b8ab0" stroke-width="1.5"/>
+        <rect x="60" y="42" width="80" height="12" rx="4" fill="#ede8f5"/>
+        <path d="M38,55 Q35,56 33,65 L20,220 Q18,238 30,245 L170,245 Q182,238 180,220 L167,65 Q165,56 162,55 Z"
+          fill="#f3effe" stroke="#9b8ab0" stroke-width="1.5"/>
+        <g id="bubbles-in-jar" clip-path="url(#jar-clip)"></g>
+        <g clip-path="url(#jar-clip)">
+          <rect id="liquid-rect" x="20" y="245" width="160" height="0" fill="#c4b0e8" opacity="0.35"/>
+        </g>
+        <path d="M38,55 Q35,56 33,65 L20,220 Q18,238 30,245 L170,245 Q182,238 180,220 L167,65 Q165,56 162,55 Z"
+          fill="none" stroke="#9b8ab0" stroke-width="1.5"/>
+        <ellipse cx="100" cy="245" rx="70" ry="8" fill="#e0d3f5" opacity="0.5"/>
+        <g id="splash-group" opacity="0">
+          <ellipse cx="100" cy="210" rx="20" ry="5" fill="#b89de0" opacity="0.6"/>
+          <circle cx="83" cy="204" r="3" fill="#b89de0" opacity="0.7"/>
+          <circle cx="117" cy="205" r="2.5" fill="#b89de0" opacity="0.6"/>
+          <circle cx="100" cy="200" r="2" fill="#b89de0" opacity="0.5"/>
+        </g>
+      </svg>
+    </div>
+
+    <button id="btn-save">+ Skipped a boba</button>
+    <button id="btn-undo">undo last</button>
+
+    <div id="history-section">
+      <div id="history-header">
+        <span id="history-title">History</span>
+        <button id="btn-clear">clear all</button>
+      </div>
+      <div id="history-list">
+        <div id="history-empty">No skips yet — resist that boba!</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PRICE = 7;
+    let history = [];
+
+    try {
+      const stored = localStorage.getItem('bobaHistory');
+      if (stored) history = JSON.parse(stored);
+    } catch(e) {}
+
+    function saveStorage() {
+      try { localStorage.setItem('bobaHistory', JSON.stringify(history)); } catch(e) {}
+    }
+
+    function formatDate(ts) {
+      return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function formatTime(ts) {
+      return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    function updateDisplay() {
+      const count = history.length;
+      document.getElementById('total-amount').textContent = '$' + (count * PRICE);
+      document.getElementById('boba-count').textContent = count + (count === 1 ? ' boba skipped' : ' bobas skipped');
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      list.innerHTML = '';
+      if (history.length === 0) {
+        list.innerHTML = '<div id="history-empty">No skips yet — resist that boba!</div>';
+        return;
+      }
+      [...history].reverse().forEach((entry, i) => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+          <div class="history-item-left">
+            <div class="boba-dot"></div>
+            <div>
+              <div class="history-date">${formatDate(entry.ts)}</div>
+              <div class="history-time">${formatTime(entry.ts)}</div>
+            </div>
+          </div>
+          <div class="history-amount">+$${PRICE}</div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function getLiquidY() {
+      const fill = Math.min(history.length / 30, 1);
+      return 238 - fill * (238 - 65);
+    }
+
+    function rebuildBubbles() {
+      const g = document.getElementById('bubbles-in-jar');
+      g.innerHTML = '';
+      const liquidY = getLiquidY();
+      const liquidRect = document.getElementById('liquid-rect');
+      const jarBottom = 238;
+      const fillHeight = jarBottom - liquidY;
+      liquidRect.setAttribute('y', liquidY);
+      liquidRect.setAttribute('height', fillHeight > 0 ? fillHeight : 0);
+      const cols = [55,72,88,105,122,138,152];
+      const shown = Math.min(history.length, 28);
+      for (let i = 0; i < shown; i++) {
+        const col = cols[i % cols.length];
+        const row = Math.floor(i / cols.length);
+        const yPos = jarBottom - 14 - row * 22 + (i % 2 === 0 ? 0 : 5);
+        const r = 8 + (i % 3) * 1.5;
+        const colors = ['#7c5cbf','#9b7dd4','#b89de0','#6a4aad','#8b6bc9'];
+        const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        circle.setAttribute('cx', col);
+        circle.setAttribute('cy', yPos);
+        circle.setAttribute('r', r);
+        circle.setAttribute('fill', colors[i % colors.length]);
+        circle.setAttribute('opacity', '0.85');
+        g.appendChild(circle);
+      }
+    }
+
+    function animateDrop(cb) {
+      const boba = document.getElementById('falling-boba');
+      const splash = document.getElementById('splash-group');
+      boba.style.transition = 'none';
+      boba.style.top = '-50px';
+      boba.style.opacity = '1';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          boba.style.transition = 'top 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.1s';
+          boba.style.top = '155px';
+          setTimeout(() => {
+            boba.style.opacity = '0';
+            splash.setAttribute('opacity','1');
+            setTimeout(() => {
+              splash.setAttribute('opacity','0');
+              if (cb) cb();
+            }, 300);
+          }, 430);
+        });
+      });
+    }
+
+    document.getElementById('btn-save').addEventListener('click', () => {
+      animateDrop(() => {
+        history.push({ ts: Date.now() });
+        saveStorage();
+        updateDisplay();
+        rebuildBubbles();
+        renderHistory();
+      });
+    });
+
+    document.getElementById('btn-undo').addEventListener('click', () => {
+      if (history.length > 0) {
+        history.pop();
+        saveStorage();
+        updateDisplay();
+        rebuildBubbles();
+        renderHistory();
+      }
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      if (history.length === 0) return;
+      if (confirm('Clear all history?')) {
+        history = [];
+        saveStorage();
+        updateDisplay();
+        rebuildBubbles();
+        renderHistory();
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+
+    updateDisplay();
+    rebuildBubbles();
+    renderHistory();
+  </script>
+</body>
+</html>
